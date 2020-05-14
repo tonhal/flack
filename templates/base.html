@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Flack</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/favicon.png') }}">
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap" rel="stylesheet">
+
+    <!-- begin::BOOTSTRAP -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+    <!-- end::BOOTSTRAP -->
+
+    <!-- FontAwesome -->
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+
+    <!-- Socket.io -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
+
+    <!-- Handlebars -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.6/handlebars.min.js"></script>
+    
+    <!-- begin::CSS -->
+    <style>
+        html, body {
+            height: 100vh;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            max-height: 100%;
+            box-sizing: border-box;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        #main {
+            width: 100%;  
+        }
+
+        .row {
+            margin:0;
+        }
+
+        #sidebar {
+            height: 100vh;
+        }
+
+        #logo {
+            text-align: center;
+        }
+
+        #welcome-text {
+            text-align: center;
+        }   
+
+        #nochannel-message {
+            color: #dedede;
+        }
+
+        #new-channel {
+            border: 0;
+            outline: 0;
+            background: transparent;
+            border-bottom: 2px solid #7aaaf8;
+            border-radius: 0px;
+            color: whitesmoke;
+        }
+
+        #new-channel:focus,
+        #new-channel:active {
+            outline:0px !important;
+            -webkit-appearance:none;
+            box-shadow: none !important;
+            border-color: whitesmoke;
+        }
+
+        #new-channel::placeholder {
+            color: #7aaaf8;
+        }
+
+        #new-channel-button {
+            border: 0;
+            background: transparent;
+            color: #7aaaf8;
+            font-size: 1.5em;
+        }
+
+        #channel-title {
+            font-size: 0.8em;
+            font-weight: bold;
+            border-bottom: 2px solid #7aaaf8;
+            color: #7aaaf8;
+        }
+
+        #channel-list {
+            padding: 0.5em;
+        }
+
+        .channel-list-item {
+            list-style-type: none;
+            padding: 0.2em 0 0.2em 1em;
+            border-radius: 5px;
+            margin: 0.2em 0;
+            cursor: pointer;
+        }
+
+        #channel-list .channel-list-item:before {
+            content: '#';
+            color: #7aaaf8;
+            margin-right: 0.5em;
+            font-size: 0.9em;
+        }
+
+        .channel-list-item:hover {
+            background-color: #7aaaf8;
+        }
+
+        .channel-list-item.active-channel {
+            background-color: whitesmoke;
+            color: #4287f5;
+        }
+
+        #chat-area {
+            background-color: whitesmoke;
+            padding:0;
+            max-height: 100vh;
+        }
+
+        #message-container {
+            overflow: auto;
+        }
+
+        #new-message-container {
+
+        }
+
+        #new-message {
+            border-radius: 20px;
+        }
+
+        .message-other {
+            background-color: #dcdcdc;
+            float: left;
+        }
+
+        .message-own {   
+            background-color:#4287f5;
+            color: whitesmoke;
+            float: right;
+        }
+
+        .message {
+            border-radius: 20px;
+        }
+
+        .notification {
+            background-color: #ef4f6f;
+            vertical-align: middle;
+            margin-top: 0.3em;
+        }
+
+        /* CSS GROUPS */
+
+        .flack-blue {
+            background-color:#4287f5;
+            color: whitesmoke;
+        }
+
+        .whitesmoke-text {
+            color: whitesmoke;
+        }
+
+        .flack-font {
+            font-family: 'Pacifico', cursive;
+        }
+
+    </style>
+    <!-- end::CSS -->
+</head>
+<body>
+    <div id="main">
+        <div class="row">
+            <div id="sidebar" class="col-3 flack-blue d-flex flex-column px-1">
+                <h1 id="logo" class="my-4 flack-font">Flack</h1>
+                <p id="welcome-text" style="visibility: hidden;">Welcome back, <span id="welcome-alias"></span>!</p>
+                <h5 id="channel-title" class="mx-3 mt-4 mb-0 pb-1">CHANNELS</h5>
+                <ul id="channel-list">
+                    {% for channel in channels %}
+                        <li class="channel-list-item">{{ channel }}</li>
+                    {% endfor %}
+                </ul>
+                <div id="new-channel-container" class="mt-auto mb-2 px-0">
+                    <form id="new-channel-form">
+                        <div class="input-group">
+                            <input type="text" class="form-control mx-2" id="new-channel" placeholder="Add new channel..." autocomplete="off">
+                            <span class="input-group-btn">
+                                <button type="submit" id="new-channel-button" class="mr-2">+</button>
+                            </span>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div id="chat-area" class="col-9 pr-0 d-flex flex-column">
+                <!--<div id="nochannel-message" class="d-flex flex-column align-items-center justify-content-center h-100">
+                    <h1 class="flack-font">Flack</h1>
+                    <p>Choose a channel to start chatting.</p>
+                </div>-->
+                <div id="message-container" class="mt-auto mb-2 p-0 clearfix"></div>
+                <div id="new-message-container" class="my-2 px-0">
+                    <form id="send-message-form">
+                        <div class="input-group">
+                            <input type="text" class="form-control mx-2" id="new-message" placeholder="Write your message here..." autocomplete="off" data-emojiable="true">
+                            <span class="input-group-btn">
+                                <button type="submit" id="send-button" class="btn btn-primary flack-blue mr-2"><i class="fas fa-paper-plane"></i></button>
+                            </span>                           
+                        </div>                        
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>  
+
+    <!-- begin::Modals -->
+    <div id="alias-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div id="alias-modal-header" class="modal-header flack-blue">
+                    <h5 class="modal-title">Welcome to <span class="flack-font">Flack</span> !</h5>
+                    <button type="button" class="close whitesmoke-text" data-dismiss="modal" aria-label="Close">
+                        <span class="whitesmoke-text" aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="alias-input">Please enter a name to start chatting:</label>
+                        <input type="text" class="form-control" name="alias_input" id="alias-input" placeholder="Choose an alias..." autocomplete="off">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="start-button" class="btn btn-primary flack-blue">Let's chat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="error-modal" class="modal fade" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div id="error-modal-header" class="modal-header flack-blue">
+                    <h5 class="modal-title">Error!</h5>
+                    <button type="button" class="close whitesmoke-text" data-dismiss="modal" aria-label="Close">
+                        <span class="whitesmoke-text" aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p id="modal-error-message"></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary flack-blue" data-dismiss="modal">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--end::Modals-->
+    
+    <!-- begin::JS -->
+    <script>
+
+        const channelTemplate = Handlebars.compile('<li class="channel-list-item" id="new-list-element">{% raw %}{{ channel_name }}{% endraw %}</li>');
+        const messageTemplate = Handlebars.compile('<div class="d-flex slide-top {% raw %}{{ message_flex }}{% endraw %} mx-2 mt-2"><div class="message {% raw %}{{ message_type }}{% endraw %} py-2 px-3">{% raw %}{{ message_content }}{% endraw %}</div></div>')
+        const notificationTemplate = Handlebars.compile('<span class="badge notification float-right mr-2">NEW</span>')
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port)
+
+            document.getElementById('new-message').disabled = true;
+
+            function showWelcome() {
+
+                document.getElementById('welcome-alias').innerHTML = localStorage.alias; 
+                document.getElementById('welcome-text').style.visibility = "visible";
+
+            }
+
+            function addMessage(message) {
+
+                if(message.message_sender == localStorage.alias) {
+                    var newMessageBubble = messageTemplate({'message_content' : message.message_content, 'message_type' : 'message-own', 'message_flex' : 'flex-row-reverse'});
+                } else {
+                    var newMessageBubble = messageTemplate({'message_content' : message.message_content, 'message_type' : 'message-other', 'message_flex' : 'flex-row'});
+                }
+
+                let messageBody = document.getElementById('message-container')
+                messageBody.innerHTML += newMessageBubble;
+
+                messageBody.scrollTop = messageBody.scrollHeight - messageBody.clientHeight;
+
+            }
+
+            function showErrorModal(errorMessage) {
+
+                document.getElementById('modal-error-message').innerHTML = errorMessage;
+                $('#error-modal').modal('show');
+
+            }
+
+            function addEventListenerToAllChannelListItem() {
+
+                let allChannelListItem = document.querySelectorAll('.channel-list-item');
+
+                allChannelListItem.forEach(element => {
+
+                    element.addEventListener('click', () => {
+
+                        document.querySelectorAll('.active-channel').forEach(innerElement => {
+                            innerElement.classList.remove('active-channel');
+                        });
+
+                        if(element.querySelector(".notification")) {
+                            element.removeChild(element.querySelector(".notification"));
+                        }
+
+                        element.classList.add('active-channel');
+
+                        /*document.getElementById('nochannel-message').style.visibility = 'hidden';*/
+
+                        document.getElementById('message-container').innerHTML = '';
+
+                        let request = new XMLHttpRequest();
+                        let channelName = element.innerHTML;
+                        request.open('POST', '/messages');
+
+                        request.onload = () => {
+
+                            let data = JSON.parse(request.responseText);
+                            if (data.success == true) {
+                                data.messages.forEach( message => {
+                                    
+                                    if(message.channel == element.innerHTML) {
+
+                                        addMessage(message);
+
+                                    }
+                                    
+                                });
+                                document.getElementById('new-message').disabled = false;
+                            } 
+                            else {
+
+                                showErrorModal('Something went wrong while getting the messages from the server');
+
+                            }
+                            
+                        }
+
+                        let data = new FormData();
+                        data.append('channel', channelName);
+
+                        request.send(data);
+
+                    });
+
+                });
+
+            }
+
+            if (typeof(Storage) !== "undefined") {
+
+                if(!localStorage.alias) {
+                    
+                    $('#alias-modal').modal('show');
+
+                    const startButton = document.getElementById('start-button');
+
+                    startButton.addEventListener('click', () => {
+
+                        $('#alias-modal').modal('toggle').hide();
+                        localStorage.alias = document.getElementById('alias-input').value;
+
+                        showWelcome();
+
+                    });
+                } else {
+
+                    showWelcome();
+
+                }   
+
+                const newChannelForm = document.getElementById('new-channel-form');
+                const channelList = document.getElementById('channel-list');
+                const sendMessageForm = document.getElementById('send-message-form');
+
+                socket.on('connect', () => {
+
+                    newChannelForm.addEventListener('submit', () => {
+
+                        event.preventDefault();
+
+                        let newChannel = document.getElementById('new-channel').value;
+
+                        if(/\S/.test(newChannel)) {
+
+                            socket.emit('add new channel', {'channel': newChannel});
+
+                            document.getElementById('new-channel').value = '';
+
+                        }
+                    });  
+
+                    sendMessageForm.addEventListener('submit', () => {
+
+                        event.preventDefault();
+
+                        let messageContent = document.getElementById('new-message').value;
+
+                        if(/\S/.test(messageContent)) {
+
+                            let currentChannel = document.querySelector('.active-channel').innerHTML;
+                            let messageSender = localStorage.alias;
+
+                            socket.emit('add new message', {'message_content': messageContent, 'channel': currentChannel, 'sender': messageSender});
+
+                            document.getElementById('new-message').value = '';
+
+                        }  
+                    });
+                    
+                }); 
+
+                socket.on('add channel', data => {
+
+                    let newChannel = data.channel;
+
+                    const newListElement = channelTemplate({'channel_name' : newChannel});
+                    channelList.innerHTML += newListElement;
+
+                    addEventListenerToAllChannelListItem();
+
+                });
+
+                socket.on('add message', data => {
+                    
+                    const current_channel = document.querySelector('.active-channel');
+
+                    if(current_channel === null || current_channel.innerHTML != data.message.channel) {
+
+                        var newNotification = notificationTemplate();
+
+                        document.querySelectorAll('.channel-list-item').forEach(item => {
+                            if(item.innerHTML == data.message.channel) {
+                                item.innerHTML += newNotification;
+                            }
+                        });
+
+                    } else {
+
+                        addMessage(data.message);
+
+                    }
+
+                });
+
+                socket.on('exception', data => {
+
+                    showErrorModal(data.error_message);
+
+                });     
+
+
+                addEventListenerToAllChannelListItem();
+                
+
+            } else {
+
+                alert("You cannot use this application without the support of localsSotrage and sessionStorage!")
+
+            }
+                    
+        });
+    </script>
+    <!-- end::JS -->
+
+</body>
+</html>
